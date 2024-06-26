@@ -2,6 +2,8 @@
 
 This command line tool used on nokia 2780 flip (kaios 3.1) to sideload apps
 
+Your device must be set selinux to permissive first. See [here](https://github.com/gogogoghost/root-nokia2780)
+
 ### Usage
 
 [Download](https://github.com/gogogoghost/appscmd/releases) or build appscmd then push it to your device
