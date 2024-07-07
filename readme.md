@@ -10,6 +10,7 @@ Your device must be set selinux to permissive first. See [here](https://github.c
 
 ```bash
 adb push appscmd /data/local/tmp/
+adb shell chmod +x /data/local/tmp/appscmd
 ```
 
 Then use install/install-pwa/list to manage apps on your device
