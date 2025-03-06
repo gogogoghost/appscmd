@@ -1,88 +1,9 @@
-use std::{collections::VecDeque, env, io::{Read, Write}, os::unix::net::UnixStream};
+use std::{collections::VecDeque, env};
 
 use serde_json::Value;
 
-const SOCKET_PATH:&str="/data/local/tmp/apps-uds.sock";
-// const SOCKET_PATH:&str="/tmp/nokia2.sock";
-
-fn transfer(cmd:String,param:Option<String>)->Result<String,String>{
-    let mut socket=UnixStream::connect(SOCKET_PATH).unwrap();
-    let mut obj = serde_json::map::Map::new();
-    obj.insert("cmd".to_owned(), Value::String(cmd.to_owned()));
-    obj.insert("param".to_owned(), match param {
-        Some(param)=>{
-            Value::String(param)
-        },
-        None=>{
-            Value::Null
-        }
-    });
-    socket.write_all(Value::Object(obj).to_string().as_bytes()).unwrap();
-    socket.write(&[0x0d,0x0a]).unwrap();
-
-    let mut buffer = Vec::new();
-    let mut byte = [0; 1];
-    loop {
-        socket.read_exact(&mut byte).unwrap();
-        buffer.push(byte[0]);
-        if buffer.ends_with(&[b'\r', b'\n']) {
-            break;
-        }
-    }
-    let result=String::from_utf8(buffer).unwrap();
-    let obj:Value=serde_json::from_str(result.as_str()).unwrap();
-    match obj.get("error"){
-        Some(error)=>{
-            return Err(error.as_str().unwrap().to_owned());
-        }
-        _=>{}
-    }
-    match obj.get("success"){
-        Some(success)=>{
-            return Ok(success.as_str().unwrap().to_owned())
-        }
-        _=>{
-            return Err("unexpect result".to_owned())
-        }
-    }
-}
-
-fn install(path:String){
-    let res=transfer("install".to_owned(),Some(path));
-    match res{
-        Ok(success)=>{
-            println!("{}",success);
-        }
-        Err(err)=>{
-            eprintln!("{}",err);
-        }
-    }
-}
-
-fn install_pwa(url:String){
-    let res=transfer("install-pwa".to_owned(),Some(url));
-    match res{
-        Ok(success)=>{
-            println!("{}",success);
-        }
-        Err(err)=>{
-            eprintln!("{}",err);
-        }
-    }
-}
-
-fn list(){
-    let res=transfer("list".to_owned(),None);
-    match res{
-        Ok(success)=>{
-            let obj:Value=serde_json::from_str(&success).unwrap();
-            println!("{}",serde_json::to_string_pretty(&obj).unwrap());
-        }
-        Err(err)=>{
-            eprintln!("{}",err);
-        }
-    }
-}
+mod daemon;
+mod uds;
 
 fn main() {
     // 获取命令行参数的迭代器
@@ -103,7 +24,14 @@ fn main() {
                 eprintln!("no file path");
                 return;
             };
-            install(path);
+            match uds::install(path){
+                Ok(success)=>{
+                    println!("{}",success);
+                }
+                Err(err)=>{
+                    eprintln!("{}",err);
+                }
+            }
         },
         "install-pwa"=>{
             let url=if let Some(url)=args.pop_front(){
@@ -112,10 +40,28 @@ fn main() {
                 eprintln!("no manifest url");
                 return;
             };
-            install_pwa(url);
+            match uds::install_pwa(url){
+                Ok(success)=>{
+                    println!("{}",success);
+                }
+                Err(err)=>{
+                    eprintln!("{}",err);
+                }
+            }
         }
         "list"=>{
-            list();
+            match uds::list(){
+                Ok(success)=>{
+                    let obj:Value=serde_json::from_str(&success).unwrap();
+                    println!("{}",serde_json::to_string_pretty(&obj).unwrap());
+                }
+                Err(err)=>{
+                    eprintln!("{}",err);
+                }
+            }
+        }
+        "daemon"=>{
+            daemon::run();
         }
         _=>{
             eprintln!("bad command");
