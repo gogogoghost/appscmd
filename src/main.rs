@@ -5,7 +5,8 @@ use serde_json::Value;
 mod daemon;
 mod uds;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // 获取命令行参数的迭代器
     let args_raw:Vec<String>=env::args().collect();
     let mut args: VecDeque<String> = VecDeque::from(args_raw);
@@ -61,7 +62,7 @@ fn main() {
             }
         }
         "daemon"=>{
-            daemon::run();
+            daemon::run().await;
         }
         _=>{
             eprintln!("bad command");
