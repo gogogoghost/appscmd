@@ -9,16 +9,10 @@ use tower_http::set_header::SetResponseHeaderLayer;
 
 use crate::uds::{self};
 
-#[derive(Debug, Serialize, Deserialize)]
-struct InstallRequest {
-    path:String,
-    sign:String
-}
 
 #[derive(Debug, Serialize, Deserialize)]
-struct InstallPWARequest {
-    url:String,
-    sign:String
+struct Request {
+    content:String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -56,8 +50,8 @@ async fn handle_list()-> Json<Message>{
     }
 }
 
-async fn handle_install(Json(req): Json<InstallRequest>)->Result<Json<Message>,StatusCode>{
-    match uds::install(req.path){
+async fn handle_install(Json(req): Json<Request>)->Result<Json<Message>,StatusCode>{
+    match uds::install(req.content){
         Ok(_)=>{
             return Ok(Message::new(
                 0,
@@ -74,8 +68,25 @@ async fn handle_install(Json(req): Json<InstallRequest>)->Result<Json<Message>,S
 }
 
 
-async fn handle_install_pwa(Json(req): Json<InstallPWARequest>)->Result<Json<Message>,StatusCode>{
-    match uds::install_pwa(req.url){
+async fn handle_install_pwa(Json(req): Json<Request>)->Result<Json<Message>,StatusCode>{
+    match uds::install_pwa(req.content){
+        Ok(_)=>{
+            return Ok(Message::new(
+                0,
+                "Success",
+            ));
+        }
+        Err(err)=>{
+            return Ok(Message::new(
+                10,
+                err,
+            ));
+        }
+    }
+}
+
+async fn handle_uninstall(Json(req): Json<Request>)->Result<Json<Message>,StatusCode>{
+    match uds::uninstall(req.content){
         Ok(_)=>{
             return Ok(Message::new(
                 0,
@@ -138,6 +149,7 @@ pub async fn run(){
     .route("/install",post(handle_install))
     .route("/install-pwa",post(handle_install_pwa))
     .route("/proxy/{host}/{*path}", get(handle_proxy))
+    .route("/uninstall",post(handle_uninstall))
     .layer(
         ServiceBuilder::new()
             .layer(SetResponseHeaderLayer::overriding(

@@ -63,3 +63,7 @@ pub fn install_pwa(url:String)->Result<String,String>{
 pub fn list()->Result<String,String>{
     transfer("list".to_owned(),None)
 }
+
+pub fn uninstall(manifest_url:String)->Result<String,String>{
+    transfer("uninstall".to_owned(),Some(manifest_url))
+}

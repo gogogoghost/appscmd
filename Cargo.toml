@@ -11,10 +11,6 @@ tokio = { version = "1", features = ["full"] }
 tower = "0.5.2"
 tower-http = { version = "0.6.2", features = ["set-header"] }
 reqwest = {version="0.12.14",default-features=false}
-# tiny_http = "0.12.0"
-# sha2 = {version="0.10.8","features"=["oid"]}
-# rsa = "0.9"
-# base64 = "0.22"
 
 [profile.release]
 lto = true

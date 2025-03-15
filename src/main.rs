@@ -61,6 +61,22 @@ async fn main() {
                 }
             }
         }
+        "uninstall"=>{
+            let manifest_url=if let Some(manifest_url)=args.pop_front(){
+                manifest_url
+            }else{
+                eprintln!("no manifest_url");
+                return;
+            };
+            match uds::uninstall(manifest_url){
+                Ok(success)=>{
+                    println!("{}",success);
+                }
+                Err(err)=>{
+                    eprintln!("{}",err);
+                }
+            }
+        }
         "daemon"=>{
             daemon::run().await;
         }
