@@ -1,11 +1,10 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
-use axum::{extract::{Path, Query}, http::{ HeaderName, HeaderValue, StatusCode}, response::{IntoResponse, Response}, routing::{get, post}, Json, Router};
+use axum::{extract::{Path, Query}, http::{HeaderValue, StatusCode}, response::{IntoResponse, Response}, routing::{get, post}, Json, Router};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tower::ServiceBuilder;
-use tower_http::set_header::SetResponseHeaderLayer;
+use tower_http::cors::{AllowOrigin, CorsLayer};
 
 use crate::uds::{self};
 
@@ -144,30 +143,23 @@ async fn handle_proxy(
 }
 
 pub async fn run(){
+    #[cfg(feature ="test")]
+    let allow_cors_origin:AllowOrigin=AllowOrigin::any();
+    #[cfg(not(feature ="test"))]
+    let allow_cors_origin:AllowOrigin=[HeaderValue::from_static("http://ostore.localhost")].into();
+
+    let cors = CorsLayer::new()
+        .allow_origin(allow_cors_origin)
+        .allow_methods([axum::http::Method::POST, axum::http::Method::OPTIONS])
+        .allow_headers([axum::http::header::CONTENT_TYPE]);
+
     let app = Router::new()
     .route("/list", get(handle_list))
     .route("/install",post(handle_install))
     .route("/install-pwa",post(handle_install_pwa))
     .route("/proxy/{host}/{*path}", get(handle_proxy))
     .route("/uninstall",post(handle_uninstall))
-    .layer(
-        ServiceBuilder::new()
-            .layer(SetResponseHeaderLayer::overriding(
-                HeaderName::from_str("Access-Control-Allow-Origin").unwrap(),
-                #[cfg(feature ="test")]
-                HeaderValue::from_static("*"),
-                #[cfg(not(feature ="test"))]
-                HeaderValue::from_static("http://ostore.localhost"),
-            ))
-            .layer(SetResponseHeaderLayer::overriding(
-                HeaderName::from_str("Access-Control-Allow-Methods").unwrap(),
-                HeaderValue::from_static("GET,POST"),
-            ))
-            .layer(SetResponseHeaderLayer::overriding(
-                HeaderName::from_str("Access-Control-Allow-Headers").unwrap(),
-                HeaderValue::from_static("Content-Type"),
-            )),
-    );
+    .layer(cors);
 
 
     #[cfg(feature ="test")]
